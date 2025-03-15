@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  AnimageUpscale
-//
-//  Created by 王梓畅 on 2025/3/13.
-//
-
 import SwiftUI
 
 struct ContentView: View {
