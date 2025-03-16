@@ -22,53 +22,56 @@ struct TaskDetailView: View {
                     VStack {
                         ImagePreviewView(imagePath: selectedTaskBinding.wrappedValue.url)
                         Spacer()
-                        Picker("Upscale Model", selection: selectedTaskBinding.parameterControl.upscaleModel) {
-                            Text("models-se").tag("models-se")
-                            Text("models-pro").tag("models-pro")
-                            Text("models-nose").tag("models-nose")
-                        }
-                        .pickerStyle(MenuPickerStyle())
-                        .id(refreshTrigger)
-                        .onChange(of: selectedTaskBinding.wrappedValue.parameterControl.upscaleModel) { oldValue, newValue in
-                            selectedTaskBinding.wrappedValue.updateAvaliableParameters()
-
-                            if !selectedTaskBinding.wrappedValue.parameterControl.availableUpscaleLevels.contains(selectedTaskBinding.wrappedValue.parameterControl.upscaleLevel) {
-                                selectedTaskBinding.wrappedValue.parameterControl.upscaleLevel = selectedTaskBinding.wrappedValue.parameterControl.availableUpscaleLevels.first ?? 2
+                        Group {
+                            Picker("Upscale Model", selection: selectedTaskBinding.parameterControl.upscaleModel) {
+                                Text("models-se").tag("models-se")
+                                Text("models-pro").tag("models-pro")
+                                Text("models-nose").tag("models-nose")
                             }
-
-                            if !selectedTaskBinding.wrappedValue.parameterControl.availableDenoiseLevels.contains(selectedTaskBinding.wrappedValue.parameterControl.denoiseLevel) {
-                                selectedTaskBinding.wrappedValue.parameterControl.denoiseLevel = selectedTaskBinding.wrappedValue.parameterControl.availableDenoiseLevels.first ?? -1
+                            .pickerStyle(MenuPickerStyle())
+                            .id(refreshTrigger)
+                            .onChange(of: selectedTaskBinding.wrappedValue.parameterControl.upscaleModel) {
+                                selectedTaskBinding.wrappedValue.updateAvaliableParameters()
+                                
+                                if !selectedTaskBinding.wrappedValue.parameterControl.availableUpscaleLevels.contains(selectedTaskBinding.wrappedValue.parameterControl.upscaleLevel) {
+                                    selectedTaskBinding.wrappedValue.parameterControl.upscaleLevel = selectedTaskBinding.wrappedValue.parameterControl.availableUpscaleLevels.first ?? 2
+                                }
+                                
+                                if !selectedTaskBinding.wrappedValue.parameterControl.availableDenoiseLevels.contains(selectedTaskBinding.wrappedValue.parameterControl.denoiseLevel) {
+                                    selectedTaskBinding.wrappedValue.parameterControl.denoiseLevel = selectedTaskBinding.wrappedValue.parameterControl.availableDenoiseLevels.first ?? -1
+                                }
+                                refreshTrigger = UUID()
                             }
-                            refreshTrigger = UUID()
-                        }
-                        
-                        Picker("Upscale Rate", selection: selectedTaskBinding.parameterControl.upscaleLevel) {
-                            ForEach(selectedTaskBinding.wrappedValue.parameterControl.availableUpscaleLevels, id: \.self) { level in
-                                Text("\(level)x").tag(level)
+                            
+                            Picker("Upscale Rate", selection: selectedTaskBinding.parameterControl.upscaleLevel) {
+                                ForEach(selectedTaskBinding.wrappedValue.parameterControl.availableUpscaleLevels, id: \.self) { level in
+                                    Text("\(level)x").tag(level)
+                                }
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                            .onChange(of: selectedTaskBinding.wrappedValue.parameterControl.availableUpscaleLevels) {
+                                selectedTaskBinding.wrappedValue.updateAvaliableParameters()
+                            }
+                            
+                            Picker("Denoise Level", selection: selectedTaskBinding.parameterControl.denoiseLevel) {
+                                ForEach(selectedTaskBinding.wrappedValue.parameterControl.availableDenoiseLevels, id: \.self) { level in
+                                    Text("\(level)").tag(level)
+                                }
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                            .onChange(of: selectedTaskBinding.wrappedValue.parameterControl.availableDenoiseLevels) {
+                                selectedTaskBinding.wrappedValue.updateAvaliableParameters()
+                            }
+                            HStack{
+                                Toggle("Enable TTX", isOn: selectedTaskBinding.parameterControl.TTX)
+                                Spacer()
+                            }
+                            HStack {
+                                Text("Suffix")
+                                TextField("Suffix", text: selectedTaskBinding.parameterControl.suffix)
                             }
                         }
-                        .pickerStyle(MenuPickerStyle())
-                        .onChange(of: selectedTaskBinding.wrappedValue.parameterControl.availableUpscaleLevels) {
-                            selectedTaskBinding.wrappedValue.updateAvaliableParameters()
-                        }
-                        
-                        Picker("Denoise Level", selection: selectedTaskBinding.parameterControl.denoiseLevel) {
-                            ForEach(selectedTaskBinding.wrappedValue.parameterControl.availableDenoiseLevels, id: \.self) { level in
-                                Text("\(level)").tag(level)
-                            }
-                        }
-                        .pickerStyle(MenuPickerStyle())
-                        .onChange(of: selectedTaskBinding.wrappedValue.parameterControl.availableDenoiseLevels) {
-                            selectedTaskBinding.wrappedValue.updateAvaliableParameters()
-                        }
-                        HStack{
-                            Toggle("Enable TTX", isOn: selectedTaskBinding.parameterControl.TTX)
-                            Spacer()
-                        }
-                        HStack {
-                            Text("Suffix")
-                            TextField("Suffix", text: selectedTaskBinding.parameterControl.suffix)
-                        }
+                        .padding()
                     }
                     .padding()
                 } else {
