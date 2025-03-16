@@ -1,41 +1,111 @@
 import SwiftUI
 
-struct UserInterface: View {
+struct MainWindow: View {
     @ObservedObject var QueueStore: QueueControl
     @State private var selectedTaskIDs: Set<UUID> = []
+    @State private var showPopover = false
+    @StateObject var settingsViewModel = SettingsViewModel()
+    @State private var showAlert = false
+    @State private var showDeleteConfirmation = false
     
-    @Environment(\.colorScheme) var colorScheme
+    // 添加用于检测键盘事件的变量
+    @State private var commandKeyDown = false
+    
     var body: some View {
         VStack {
             GeometryReader { geometry in
                 HStack(spacing: 0) {
-                    QueueListView(QueueStore, selectedTaskIDs: $selectedTaskIDs)
-                        .frame(width: geometry.size.width * 0.7)
-                    
+                    if QueueStore.Queue.isEmpty {
+                        VStack {
+                            Text("Click add or drop a image here")
+                                .font(.title)
+                                .padding()
+                                .opacity(0.3)
+                        }
+                        .frame(width: geometry.size.width * 0.7, height: geometry.size.height)
+                    } else {
+                        QueueListView(QueueStore, selectedTaskIDs: $selectedTaskIDs)
+                            .frame(width: geometry.size.width * 0.7)
+                    }
                     TaskDetailView(selectedTaskIDs: selectedTaskIDs, QueueStore: QueueStore)
                         .frame(width: geometry.size.width * 0.3)
                 }
-            }
-            HStack {
-                Button(action: {
+                .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+                    var urls: [URL] = []
+                    let group = DispatchGroup()
+                    for item in providers {
+                        group.enter()
+                        item.loadObject(ofClass: URL.self) { (url, error) in
+                            if let url = url {
+                                let fileExtension = url.pathExtension.lowercased()
+                                if ["png", "jpg", "jpeg", "webp"].contains(fileExtension) {
+                                    urls.append(url)
+                                } else {
+                                    DispatchQueue.main.async {
+                                        QueueStore.unsupportedFileTypes.append(url.lastPathComponent)
+                                    }
+                                }
+                            } else if let error = error {
+                                print("Failed to load file: \(error.localizedDescription)")
+                            }
+                            group.leave()
+                        }
+                    }
                     
+                    group.notify(queue: .main) {
+                        if !urls.isEmpty {
+                            QueueStore.initializeAndAddTasks(from: urls)
+                        }
+                    }
+                    return true
+                }
+            }
+        }
+        .alert("Import Error", isPresented: $showAlert) {
+            Button("OK", role: .cancel) {
+                QueueStore.failedFiles.removeAll()
+                QueueStore.unsupportedFileTypes.removeAll()
+                showAlert = false
+            }
+        } message: {
+            let allFailedFiles = QueueStore.failedFiles + QueueStore.unsupportedFileTypes
+            Text(allFailedFiles.joined(separator: "\n"))
+        }
+        .onReceive(QueueStore.objectWillChange) {
+            if !showAlert && (!QueueStore.failedFiles.isEmpty || !QueueStore.unsupportedFileTypes.isEmpty) {
+                showAlert = true
+            }
+        }
+        .frame(minWidth: 1000, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                
+                // Debug Button: Demo parameters of all tasks
+                Button(action: {
+                    QueueStore.printParametersOfAllTasks()
+                }, label: {
+                    Image(systemName: "memorychip.fill")
+                })
+                //
+                
+                Button(action: {
+                    showPopover.toggle()
                 }, label: {
                     Image(systemName: "ellipsis.circle")
                 })
-                Spacer()
+                .popover(isPresented: $showPopover) {
+                    PopoverSettingsView(settingsViewModel: settingsViewModel, showPopover: $showPopover)
+                }
                 Button(action: {
                     
                 }, label: {
                     Image(systemName: "apple.terminal")
                 })
-            }
-            .padding(6)
-        }
-        .frame(minWidth: 1000, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
+                
+                Spacer()
+                
                 Button(action: {
-                    removeSelectedTasks()
+                    deleteSelectedTasks()
                 }, label: {
                     Image(systemName: "minus")
                 })
@@ -53,6 +123,39 @@ struct UserInterface: View {
                 .disabled(QueueStore.Queue.isEmpty)
             }
         }
+        .alert(isPresented: $showDeleteConfirmation) {
+            Alert(
+                title: Text("Confirm Deletion"),
+                message: Text("Are you sure you want to delete the selected tasks?"),
+                primaryButton: .destructive(Text("Delete")) {
+                    removeSelectedTasks()
+                },
+                secondaryButton: .cancel()
+            )
+        }
+        .background(KeyEventHandlingView(onDelete: deleteSelectedTasks))
+        .onAppear {
+            // 捕捉键盘事件
+            NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                if event.modifierFlags.contains(.command) && event.characters == "a" {
+                    // 当按下 command + A 时，全选所有任务
+                    selectAllTasks()
+                    return nil
+                }
+                return event
+            }
+        }
+    }
+    
+    func selectAllTasks() {
+        // 全选所有任务
+        selectedTaskIDs = Set(QueueStore.Queue.map { $0.id })
+    }
+    
+    func deleteSelectedTasks() {
+        if !selectedTaskIDs.isEmpty {
+            showDeleteConfirmation = true
+        }
     }
     
     func removeSelectedTasks() {
@@ -68,120 +171,12 @@ struct UserInterface: View {
         panel.canCreateDirectories = false
         
         if panel.runModal() == .OK {
-            let selectedFiles = panel.urls.map { $0.path }
-            
-            let existingFilePaths = Set(QueueStore.Queue.map { $0.url })
-            let newFiles = selectedFiles.filter { !existingFilePaths.contains($0) }
-            
-            let newTasks = newFiles.map { path in
-                Task(url: path, fileName: (path as NSString).lastPathComponent, outputDirectory: DefaultSettings.outputDirectory)
-            }
-            
-            QueueStore.Queue.append(contentsOf: newTasks)
+            let selectedFiles = panel.urls
+            QueueStore.initializeAndAddTasks(from: selectedFiles)
         }
     }
 }
-
-struct QueueListView: View {
-    @ObservedObject var QueueStore: QueueControl
-    @Binding var selectedTaskIDs: Set<UUID>
-    
-    init(_ QueueStore: QueueControl, selectedTaskIDs: Binding<Set<UUID>>) {
-        self.QueueStore = QueueStore
-        self._selectedTaskIDs = selectedTaskIDs
-    }
-    
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 5) {
-                ForEach(QueueStore.Queue) { item in
-                    TaskRow(item, isSelected: selectedTaskIDs.contains(item.id))
-                        .padding(.horizontal, 10)
-                        .onTapGesture {
-                            let isCommandPressed = NSEvent.modifierFlags.contains(.command)
-                            
-                            if isCommandPressed {
-                                if selectedTaskIDs.contains(item.id) {
-                                    selectedTaskIDs.remove(item.id)
-                                } else {
-                                    selectedTaskIDs.insert(item.id)
-                                }
-                            } else {
-                                selectedTaskIDs = [item.id]
-                            }
-                        }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.vertical, 10)
-        .background(Color.clear)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            selectedTaskIDs.removeAll()
-        }
-    }
-}
-
-struct TaskDetailView: View {
-    var selectedTaskIDs: Set<UUID>
-    var QueueStore: QueueControl
-    
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 10)
-                .padding(10)
-                .opacity(0.03)
-            Group {
-                if selectedTaskIDs.isEmpty {
-                    Text("Select a item to edit")
-                        .foregroundColor(.secondary)
-                        .italic()
-                } else if selectedTaskIDs.count == 1, let selectedTask = QueueStore.Queue.first(where: { selectedTaskIDs.contains($0.id) }) {
-                    ImagePreviewView(imagePath: selectedTask.url)
-                } else {
-                    Text(" \(selectedTaskIDs.count) items selected")
-                        .font(.headline)
-                        .padding()
-                        .foregroundColor(.secondary)
-                }
-            }
-        }
-        
-    }
-}
-
-
-struct ImagePreviewView: View {
-    let imagePath: String
-    
-    init(imagePath: String) {
-        self.imagePath = imagePath
-    }
-    
-    var body: some View {
-        if let image = NSImage(contentsOfFile: imagePath) {
-            GeometryReader { geometry in
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .padding(15)
-                    .shadow(radius: 5)
-            }
-        } else {
-            VStack {
-                Image(systemName: "exclamationmark.circle")
-                    .foregroundStyle(.red)
-                Text("Failed to load image")
-                    .foregroundColor(.secondary)
-                    .font(.caption)
-            }
-        }
-    }
-}
-
 
 #Preview {
-    UserInterface(QueueStore: QueueControl())
+    MainWindow(QueueStore: QueueControl())
 }

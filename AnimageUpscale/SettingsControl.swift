@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-class SettingsViewModel: ObservableObject {
+class SettingsViewModel: ObservableObject{
     @Published var upscaleLevel: Int
     @Published var denoiseLevel: Int
     @Published var upscaleModel: String
@@ -44,16 +44,18 @@ class SettingsViewModel: ObservableObject {
     }
     
     public func updateAvailableLevels(for model: String) {
-            self.availableUpscaleLevels = self.modelToUpscaleLevels[model] ?? []
-            self.availableDenoiseLevels = self.modelToDenoiseLevels[model] ?? []
-
-            if !self.availableUpscaleLevels.contains(self.upscaleLevel) {
-                self.upscaleLevel = self.availableUpscaleLevels.first ?? 2
-            }
-            if !self.availableDenoiseLevels.contains(self.denoiseLevel) {
-                self.denoiseLevel = self.availableDenoiseLevels.first ?? -1
-            }
-            self.objectWillChange.send()
-            
+        self.availableUpscaleLevels = self.modelToUpscaleLevels[model] ?? []
+        self.availableDenoiseLevels = self.modelToDenoiseLevels[model] ?? []
+        
+        if !self.availableUpscaleLevels.contains(self.upscaleLevel) {
+            self.upscaleLevel = self.availableUpscaleLevels.first ?? 2
+        }
+        if !self.availableDenoiseLevels.contains(self.denoiseLevel) {
+            self.denoiseLevel = self.availableDenoiseLevels.first ?? -1
+        }
+        
+        print("Current Model: \(self.upscaleModel)\nAvailable Upscale Levels: \(self.availableUpscaleLevels)\nAvailable Denoise Levels: \(self.availableDenoiseLevels)\n")
+        self.objectWillChange.send()
+        
     }
 }

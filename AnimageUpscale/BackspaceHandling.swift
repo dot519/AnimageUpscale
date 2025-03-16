@@ -11,6 +11,13 @@ struct KeyEventHandlingView: NSViewRepresentable {
         }
 
         @objc func keyDown(with event: NSEvent) {
+            // 获取当前第一响应者
+            if let firstResponder = NSApp.keyWindow?.firstResponder,
+               firstResponder.isKind(of: NSText.classForCoder()) {
+                // 如果是文本输入框，不处理
+                return
+            }
+
             if event.keyCode == 51 { // 51 = Delete (Backspace)
                 onDelete()
             }
@@ -23,11 +30,10 @@ struct KeyEventHandlingView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        let eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+        _ = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             context.coordinator.keyDown(with: event)
             return event
         }
-        context.coordinator.onDelete = onDelete
         return view
     }
 
