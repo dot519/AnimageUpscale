@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 class ProcessThread: ObservableObject, @unchecked Sendable {
     var task: Task
@@ -39,13 +40,24 @@ class ProcessThread: ObservableObject, @unchecked Sendable {
                 }
             }
 
-            // **任务完成，调用回调**
             completion()
         }
     }
 
     func stop() {
-        process.terminate()
+        print("Stopping process for task: \(task.fileName)")
+
+        if process.isRunning {
+            print("Terminating process normally...")
+            try? process.terminate()
+            usleep(500_000)  // 等待 0.5 秒，确保进程有时间响应终止信号
+        }
+
+        if process.isRunning {
+            print("Force killing process...")
+            kill(process.processIdentifier, SIGKILL) // 强制终止进程
+        }
+
         DispatchQueue.main.async {
             self.task.status = .failed
         }

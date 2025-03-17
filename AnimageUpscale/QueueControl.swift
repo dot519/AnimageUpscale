@@ -12,6 +12,7 @@ class QueueControl: ObservableObject {
     @Published var failedFiles: [String] = []
     @Published var unsupportedFileTypes: [String] = []
     @Published var currentTask: Task? = nil
+    @Published var processThreads: [UUID: ProcessThread] = [:]
     
     func initializeAndAddTasks(from urls: [URL]) {
         var failedFiles: [String] = []
@@ -99,25 +100,28 @@ class QueueControl: ObservableObject {
 
         DispatchQueue.global(qos: .userInitiated).async {
             for task in self.Queue where task.status == .ready || task.status == .failed {
-                if self.Status == .idle { break } // 如果终止，停止循环
-                
+                if self.Status == .idle { break }
+
                 DispatchQueue.main.sync {
                     self.currentTask = task
                 }
 
                 let processThread = ProcessThread(task)
+                
+                DispatchQueue.main.sync {
+                    self.processThreads[task.id] = processThread
+                }
 
-                // **使用信号量确保任务顺序执行**
                 let semaphore = DispatchSemaphore(value: 0)
-
+                
                 processThread.run(completion: {
                     semaphore.signal()
                 })
-
-                // **等待任务完成后才进入下一个**
+                
                 semaphore.wait()
-
+                
                 DispatchQueue.main.sync {
+                    // 这里不能删除 processThread，以防止 stopQueue() 访问不到
                     self.currentTask = nil
                 }
             }
@@ -128,11 +132,26 @@ class QueueControl: ObservableObject {
         }
     }
     
+    
     func stopQueue() {
-        guard Status == .running, let currentTask = currentTask else { return }
-        let processThread = ProcessThread(currentTask)
-        processThread.stop()
-        self.Status = .idle
-        self.currentTask = nil
+        guard Status == .running, let currentTask = currentTask else {
+            print("stopQueue() called but no running task found.")
+            return
+        }
+
+        print("Attempting to stop process for task: \(currentTask.fileName)")
+
+        if let processThread = processThreads[currentTask.id] {
+            print("Found running process, stopping now...")
+            processThread.stop()
+            processThreads.removeValue(forKey: currentTask.id)
+        } else {
+            print("No processThread found for task: \(currentTask.fileName)")
+        }
+
+        DispatchQueue.main.async {
+            self.Status = .idle
+            self.currentTask = nil
+        }
     }
 }

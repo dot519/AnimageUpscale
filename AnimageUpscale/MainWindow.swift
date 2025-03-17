@@ -36,7 +36,7 @@ struct MainWindow: View {
                     let group = DispatchGroup()
                     for item in providers {
                         group.enter()
-                        item.loadObject(ofClass: URL.self) { (url, error) in
+                        _ = item.loadObject(ofClass: URL.self) { (url, error) in
                             if let url = url {
                                 let fileExtension = url.pathExtension.lowercased()
                                 if ["png", "jpg", "jpeg", "webp"].contains(fileExtension) {
