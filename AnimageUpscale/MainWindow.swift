@@ -7,6 +7,7 @@ struct MainWindow: View {
     @StateObject var settingsViewModel = SettingsViewModel()
     @State private var showAlert = false
     @State private var showDeleteConfirmation = false
+    @State private var refreshTrigger = UUID()
     
     // 添加用于检测键盘事件的变量
     @State private var commandKeyDown = false
@@ -96,11 +97,6 @@ struct MainWindow: View {
                 .popover(isPresented: $showPopover) {
                     PopoverSettingsView(settingsViewModel: settingsViewModel, showPopover: $showPopover)
                 }
-                Button(action: {
-                    
-                }, label: {
-                    Image(systemName: "apple.terminal")
-                })
                 
                 Spacer()
                 
@@ -116,11 +112,20 @@ struct MainWindow: View {
                     Image(systemName: "plus")
                 })
                 Button(action: {
-                    
+                    if QueueStore.Status == .idle {
+                        print("Queue started\n")
+                        QueueStore.runQueue()
+                    } else {
+                        QueueStore.stopQueue()
+                        print("Queue ended\n")
+                    }
                 }, label: {
-                    Image(systemName: "play.fill")
+                    Image(systemName: QueueStore.Status == .idle ? "play.fill" : "stop.fill")
                 })
                 .disabled(QueueStore.Queue.isEmpty)
+                .onChange(of: QueueStore.Status) {
+                    refreshTrigger = UUID()
+                }
             }
         }
         .alert(isPresented: $showDeleteConfirmation) {
@@ -135,10 +140,8 @@ struct MainWindow: View {
         }
         .background(KeyEventHandlingView(onDelete: deleteSelectedTasks))
         .onAppear {
-            // 捕捉键盘事件
             NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 if event.modifierFlags.contains(.command) && event.characters == "a" {
-                    // 当按下 command + A 时，全选所有任务
                     selectAllTasks()
                     return nil
                 }

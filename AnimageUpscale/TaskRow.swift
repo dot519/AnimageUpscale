@@ -3,6 +3,7 @@ import SwiftUI
 struct TaskRow: View {
     let task: Task
     let isSelected: Bool
+    @State private var refreshTrigger = UUID()
     init(_ task: Task, isSelected: Bool = false) {
         self.task = task
         self.isSelected = isSelected
@@ -25,6 +26,9 @@ struct TaskRow: View {
                 }
                 HStack {
                     statusIndicator
+                        .onChange(of: task.status) {
+                            refreshTrigger = UUID()
+                        }
                     Text("\(task.originalSize.width)×\(task.originalSize.height) → \(task.originalSize.width * task.parameterControl.upscaleLevel)×\(task.originalSize.height * task.parameterControl.upscaleLevel)")
                         .font(.caption)
                         .foregroundColor(.secondary)

@@ -11,6 +11,7 @@ class QueueControl: ObservableObject {
     @Published var Status: QueueStatus = .idle
     @Published var failedFiles: [String] = []
     @Published var unsupportedFileTypes: [String] = []
+    @Published var currentTask: Task? = nil
     
     func initializeAndAddTasks(from urls: [URL]) {
         var failedFiles: [String] = []
@@ -90,5 +91,48 @@ class QueueControl: ObservableObject {
         Queue.removeAll { task in
             ids.contains(task.id)
         }
+    }
+    
+    func runQueue() {
+        guard Status == .idle else { return }
+        Status = .running
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            for task in self.Queue where task.status == .ready || task.status == .failed {
+                if self.Status == .idle { break } // 如果终止，停止循环
+                
+                DispatchQueue.main.sync {
+                    self.currentTask = task
+                }
+
+                let processThread = ProcessThread(task)
+
+                // **使用信号量确保任务顺序执行**
+                let semaphore = DispatchSemaphore(value: 0)
+
+                processThread.run(completion: {
+                    semaphore.signal()
+                })
+
+                // **等待任务完成后才进入下一个**
+                semaphore.wait()
+
+                DispatchQueue.main.sync {
+                    self.currentTask = nil
+                }
+            }
+
+            DispatchQueue.main.sync {
+                self.Status = .idle
+            }
+        }
+    }
+    
+    func stopQueue() {
+        guard Status == .running, let currentTask = currentTask else { return }
+        let processThread = ProcessThread(currentTask)
+        processThread.stop()
+        self.Status = .idle
+        self.currentTask = nil
     }
 }

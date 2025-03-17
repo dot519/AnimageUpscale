@@ -81,6 +81,8 @@ class Task: Identifiable, ObservableObject {
     
     @Published var url: String
     @Published var fileName: String
+    @Published var fileNameWithoutExtension: String
+    @Published var fileExtension: String
     @Published var originalSize: Resolution
     @Published var status: TaskStatus
     @Published var parameterControl: SettingsViewModel = SettingsViewModel()
@@ -88,6 +90,8 @@ class Task: Identifiable, ObservableObject {
     init(url: String, fileName: String, outputDirectory: String, upscaleLevel: Int, denoiseLevel: Int, upscaleModel: String, TTX: Bool, suffix: String, originalSize: Resolution, status: TaskStatus) {
         self.url = url
         self.fileName = fileName
+        self.fileNameWithoutExtension = (fileName as NSString).deletingPathExtension
+        self.fileExtension = (fileName as NSString).pathExtension
         self.originalSize = originalSize
         self.status = status
         parameterControl.updateAvailableLevels(for: self.parameterControl.upscaleModel)
