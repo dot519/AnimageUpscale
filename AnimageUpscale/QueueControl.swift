@@ -118,6 +118,10 @@ class QueueControl: ObservableObject {
                     semaphore.signal()
                 })
                 
+                DispatchQueue.main.async {
+                    self.objectWillChange.send()
+                }
+                
                 semaphore.wait()
                 
                 DispatchQueue.main.sync {
