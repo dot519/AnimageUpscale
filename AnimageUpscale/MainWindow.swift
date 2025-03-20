@@ -9,7 +9,6 @@ struct MainWindow: View {
     @State private var showDeleteConfirmation = false
     @State private var refreshTrigger = UUID()
     
-    // 添加用于检测键盘事件的变量
     @State private var commandKeyDown = false
     
     var body: some View {
@@ -82,11 +81,11 @@ struct MainWindow: View {
             ToolbarItemGroup(placement: .primaryAction) {
                 
                 // Debug Button: Demo parameters of all tasks
-                Button(action: {
-                    QueueStore.printParametersOfAllTasks()
-                }, label: {
-                    Image(systemName: "memorychip.fill")
-                })
+//                Button(action: {
+//                    QueueStore.printParametersOfAllTasks()
+//                }, label: {
+//                    Image(systemName: "memorychip.fill")
+//                })
                 //
                 
                 Button(action: {

@@ -11,10 +11,8 @@ struct KeyEventHandlingView: NSViewRepresentable {
         }
 
         @objc func keyDown(with event: NSEvent) {
-            // 获取当前第一响应者
             if let firstResponder = NSApp.keyWindow?.firstResponder,
                firstResponder.isKind(of: NSText.classForCoder()) {
-                // 如果是文本输入框，不处理
                 return
             }
 

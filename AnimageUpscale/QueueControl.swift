@@ -18,7 +18,7 @@ class QueueControl: ObservableObject {
         var failedFiles: [String] = []
         var unsupportedFiles: [String] = []
         
-        let existingFilePaths = Set(Queue.map { $0.url }) // 记录完整路径
+        let existingFilePaths = Set(Queue.map { $0.url })
         
         let newTasks = urls.compactMap { url -> Task? in
             if existingFilePaths.contains(url.path) {
@@ -125,7 +125,6 @@ class QueueControl: ObservableObject {
                 semaphore.wait()
                 
                 DispatchQueue.main.sync {
-                    // 这里不能删除 processThread，以防止 stopQueue() 访问不到
                     self.currentTask = nil
                 }
             }
