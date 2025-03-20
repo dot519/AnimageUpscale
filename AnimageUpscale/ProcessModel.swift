@@ -49,7 +49,7 @@ class ProcessThread: ObservableObject, @unchecked Sendable {
 
         if process.isRunning {
             print("Terminating process normally...")
-            try? process.terminate()
+            process.terminate()
             usleep(500_000)  // 等待 0.5 秒，确保进程有时间响应终止信号
         }
 
