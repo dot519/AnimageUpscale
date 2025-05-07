@@ -53,21 +53,8 @@ struct PopoverSettingsView: View {
                 }
             }
             .padding()
-            
-            HStack {
-                Button("Save") {
-                    settingsViewModel.saveSettings()
-                    showPopover = false
-                }
-                Spacer()
-                Button("Cancel") {
-                    settingsViewModel.objectWillChange.send()
-                    showPopover = false
-                }
-            }
-            .padding(.horizontal)
         }
-        .padding()
+        .padding(.top)
         .background(GeometryReader { geometry in
             Color.clear
                 .onTapGesture {
@@ -93,6 +80,8 @@ struct PopoverSettingsView: View {
         
         if panel.runModal() == .OK, let directoryURL = panel.urls.first {
             settingsViewModel.outputDirectory = directoryURL.absoluteString
+            let prefixRange = settingsViewModel.outputDirectory.startIndex..<settingsViewModel.outputDirectory.index(settingsViewModel.outputDirectory.startIndex, offsetBy: 7)
+            settingsViewModel.outputDirectory.removeSubrange(prefixRange)
         }
         
         isDirectoryPickerOpen = false

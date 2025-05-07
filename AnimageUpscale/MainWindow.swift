@@ -79,25 +79,22 @@ struct MainWindow: View {
         .frame(minWidth: 1000, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                
-                // Debug Button: Demo parameters of all tasks
-//                Button(action: {
-//                    QueueStore.printParametersOfAllTasks()
-//                }, label: {
-//                    Image(systemName: "memorychip.fill")
-//                })
-                //
-                
                 Button(action: {
                     showPopover.toggle()
                 }, label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: "gearshape")
                 })
                 .popover(isPresented: $showPopover) {
                     PopoverSettingsView(settingsViewModel: settingsViewModel, showPopover: $showPopover)
                 }
                 
                 Spacer()
+                
+                Button(action: {
+                    clearAllTasks()
+                }, label: {
+                    Image(systemName: "trash")
+                })
                 
                 Button(action: {
                     deleteSelectedTasks()
@@ -176,6 +173,12 @@ struct MainWindow: View {
             let selectedFiles = panel.urls
             QueueStore.initializeAndAddTasks(from: selectedFiles)
         }
+    }
+    
+    func clearAllTasks() {
+        selectedTaskIDs = Set(QueueStore.Queue.map { $0.id })
+        QueueStore.removeTasks(withIDs: selectedTaskIDs)
+        selectedTaskIDs.removeAll()
     }
 }
 

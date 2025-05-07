@@ -1,13 +1,25 @@
 import Foundation
 import Combine
 
-class SettingsViewModel: ObservableObject{
-    @Published var upscaleLevel: Int
-    @Published var denoiseLevel: Int
-    @Published var upscaleModel: String
-    @Published var TTX: Bool
-    @Published var suffix: String
-    @Published var outputDirectory: String
+class SettingsViewModel: ObservableObject, Equatable{
+    @Published var upscaleLevel: Int {
+        didSet { saveSettings() }
+    }
+    @Published var denoiseLevel: Int {
+        didSet { saveSettings() }
+    }
+    @Published var upscaleModel: String {
+        didSet { saveSettings() }
+    }
+    @Published var TTX: Bool {
+        didSet { saveSettings() }
+    }
+    @Published var suffix: String {
+        didSet { saveSettings() }
+    }
+    @Published var outputDirectory: String {
+        didSet { saveSettings() }
+    }
     @Published var availableUpscaleLevels: [Int] = []
     @Published var availableDenoiseLevels: [Int] = []
     
@@ -41,6 +53,15 @@ class SettingsViewModel: ObservableObject{
         DefaultSettings.TTX = TTX
         DefaultSettings.suffix = suffix
         DefaultSettings.outputDirectory = outputDirectory
+        print("""
+            Current Default Parameters:
+                Model: \(DefaultSettings.upscaleModel)
+                Upscale rate: \(DefaultSettings.upscaleLevel)
+                Deniose level: \(DefaultSettings.denoiseLevel)
+                TTX: \(DefaultSettings.TTX)
+                Suffix: \(DefaultSettings.suffix)
+                Output Directory: \(DefaultSettings.outputDirectory)
+            """)
     }
     
     public func updateAvailableLevels(for model: String) {
@@ -57,5 +78,18 @@ class SettingsViewModel: ObservableObject{
         print("Current Model: \(self.upscaleModel)\nAvailable Upscale Levels: \(self.availableUpscaleLevels)\nAvailable Denoise Levels: \(self.availableDenoiseLevels)\n")
         self.objectWillChange.send()
         
+    }
+    
+    static func == (lhs: SettingsViewModel, rhs: SettingsViewModel) -> Bool {
+        return (lhs.TTX == rhs.TTX) && (lhs.upscaleModel == rhs.upscaleModel) && (lhs.outputDirectory == rhs.outputDirectory) && (lhs.suffix == rhs.suffix)
+    }
+    
+    func showCurrentSettings() {
+        print("Current Settings:")
+        print("Upscale Model: \(self.upscaleModel)")
+        print("Upscale Level: \(self.upscaleLevel)")
+        print("Denoise Level: \(self.denoiseLevel)")
+        print("TTX: \(self.TTX)")
+        print("Output Directory: \(self.outputDirectory)")
     }
 }

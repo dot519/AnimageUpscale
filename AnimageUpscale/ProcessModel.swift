@@ -11,7 +11,7 @@ class ProcessThread: ObservableObject, @unchecked Sendable {
         self.process.launchPath = Bundle.main.resourcePath! + "/realcugan-ncnn-vulkan-20220728-macos/realcugan-ncnn-vulkan"
         self.process.arguments = [
             "-i", task.url,
-            "-o", "\(task.parameterControl.outputDirectory)/\(task.fileNameWithoutExtension)\(task.parameterControl.suffix).\(task.fileExtension)",
+            "-o", "\(task.parameterControl.outputDirectory)\(task.fileNameWithoutExtension)\(task.parameterControl.suffix).\(task.fileExtension)",
             "-s", "\(task.parameterControl.upscaleLevel)",
             "-n", "\(task.parameterControl.denoiseLevel)",
             "-m", "\(task.parameterControl.upscaleModel)"

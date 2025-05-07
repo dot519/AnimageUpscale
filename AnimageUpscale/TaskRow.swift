@@ -56,7 +56,7 @@ struct TaskRow: View {
         switch status {
         case .ready: return .clear
         case .running: return .blue
-        case .completed: return .green.opacity(0.1)
+        case .completed: return .green.opacity(0.6)
         case .failed: return .red
         }
     }

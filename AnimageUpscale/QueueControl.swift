@@ -30,7 +30,6 @@ class QueueControl: ObservableObject {
             if let image = NSImage(contentsOfFile: url.path),
                let imageRep = image.representations.first as? NSBitmapImageRep {
                 let resolution = Resolution(width: imageRep.pixelsWide, height: imageRep.pixelsHigh)
-                
                 return Task(
                     url: url.path,
                     fileName: url.lastPathComponent,
